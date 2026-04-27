@@ -23,8 +23,8 @@ function Add-AliasToHost {
     $content = Get-Content $HOSTSFILE
     $content += "`r`n$aliasLine"
 
-    $content | Set-Content "$hostsfile.tmp" -Encoding ascii
-    Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
+    $content | Set-Content "$hostsFile.tmp" -Encoding ascii
+    Move-Item "$hostsFile.tmp" $HOSTSFILE -Force
 }
 
 # Removes an alias for 127.0.0.1 from the hosts file
@@ -37,8 +37,8 @@ function Remove-AliasFromHost {
     $content = Get-Content $HOSTSFILE
     $newContent = $content | Where-Object { $_ -ne $aliasLine }
 
-    $newContent | Set-Content "$hostsfile.tmp" -Encoding ascii
-	Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
+    $newContent | Set-Content "$hostsFile.tmp" -Encoding ascii
+	Move-Item "$hostsFile.tmp" $HOSTSFILE -Force
 }
 
 # Sets in the registry the webclient file size limit to the maximum value
