@@ -4,58 +4,59 @@ Param(
 	[string] $Action = "install"
 )
 
-# Global variables as requested by maintainers
-$sysdir = [Environment]::SystemDirectory
-$hostsFile = "$sysdir\drivers\etc\hosts"
+New-Variable -Name "SYSDIR" -Value ([Environment]::SystemDirectory) -Option Constant
+New-Variable -Name "HOSTSFILE" -Value "$sysdir\drivers\etc\hosts" -Option Constant
 
 # Adds an alias for 127.0.0.1 to the hosts file
 function Add-AliasToHost {
-    param ([string]$LoopbackAlias)
+    param (
+        [string]$LoopbackAlias
+    )
     $aliasLine = "127.0.0.1 $LoopbackAlias"
 
-    if (Test-Path $hostsFile) {
-        $content = @(Get-Content $hostsFile)
-        foreach ($line in $content) {
-            if ($null -ne $line -and $line.Trim() -eq $aliasLine) {
-                return # Already exists
-            }
+    foreach ($line in Get-Content $HOSTSFILE) {
+        if ($line -eq $aliasLine){
+            return
         }
-        
-        # Safe append using temporary file strategy
-        $content += $aliasLine
-        $content | Set-Content "$hostsFile.tmp" -Encoding ascii
-        Move-Item "$hostsFile.tmp" $hostsFile -Force
     }
+
+    $content = Get-Content $HOSTSFILE
+    $content += "`r`n$aliasLine"
+
+    $content | Set-Content "$hostsfile.tmp" -Encoding ascii
+    Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
 }
 
 # Removes an alias for 127.0.0.1 from the hosts file
 function Remove-AliasFromHost {
-    param ([string]$LoopbackAlias)
+    param (
+    	[string]$LoopbackAlias
+    )
     $aliasLine = "127.0.0.1 $LoopbackAlias"
 
-    if (Test-Path $hostsFile) {
-        $content = @(Get-Content $hostsFile)
-        # The .Trim() here is the fix to ensure the line is found and removed
-        $newContent = @($content | Where-Object { $null -ne $_ -and $_.Trim() -ne $aliasLine })
+    $content = Get-Content $HOSTSFILE
+    $newContent = $content | Where-Object { $_ -ne $aliasLine }
 
-        if ($content.Count -gt $newContent.Count) {
-            $newContent | Set-Content "$hostsFile.tmp" -Encoding ascii
-            Move-Item "$hostsFile.tmp" $hostsFile -Force
-        }
-    }
+    $newContent | Set-Content "$hostsfile.tmp" -Encoding ascii
+	Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
 }
 
 # Sets in the registry the webclient file size limit to the maximum value
 function Set-WebDAVFileSizeLimit {
+    # Set variables to indicate value and key to set
     $RegistryPath = 'HKLM:\SYSTEM\CurrentControlSet\Services\WebClient\Parameters'
     $Name         = 'FileSizeLimitInBytes'
     $Value        = '0xffffffff'
 
+    # Create the key if it does not exist
     If (-NOT (Test-Path $RegistryPath)) {
         New-Item -Path $RegistryPath -Force | Out-Null
     }
+
+    # Now set the value
     New-ItemProperty -Path $RegistryPath -Name $Name -Value $Value -PropertyType DWORD -Force | Out-Null
 }
+
 
 # Changes the network provider order such that the builtin Windows webclient is always first
 function Edit-ProviderOrder {
@@ -63,7 +64,8 @@ function Edit-ProviderOrder {
     $Name            = 'ProviderOrder'
     $WebClientString = 'webclient'
 
-    $CurrentOrder = (Get-ItemProperty $RegistryPath $Name).$Name
+    $CurrentOrder =  (Get-ItemProperty $RegistryPath $Name).$Name
+
     $OrderWithoutWebclientArray = $CurrentOrder -split ',' | Where-Object {$_ -ne $WebClientString}
     $WebClientArray = @($WebClientString)
 
@@ -71,22 +73,20 @@ function Edit-ProviderOrder {
     New-ItemProperty -Path $RegistryPath -Name $Name -Value $UpdatedOrder -PropertyType String -Force | Out-Null
 }
 
-# Execution Logic with strict validation
-if ($Action -eq "uninstall") {
-    Remove-AliasFromHost $LoopbackAlias
-    Write-Output 'Ensured alias removed from hosts file'
-} elseif ($Action -eq "install") {
-    Add-AliasToHost $LoopbackAlias
+if ($Action -eq "install") {
+	Add-AliasToHost $LoopbackAlias
     Write-Output 'Ensured alias exists in hosts file'
 
-    Set-WebDAVFileSizeLimit
+	Set-WebDAVFileSizeLimit
     Write-Output 'Set WebDAV file size limit'
 
     Edit-ProviderOrder
     Write-Output 'Ensured correct provider order'
+} elseif ($Action -eq "uninstall") {
+    Remove-AliasFromHost $LoopbackAlias
+    Write-Output 'Ensured alias removed from hosts file'
 } else {
-    Write-Error "Invalid action: $Action. Only 'install' or 'uninstall' are supported."
-    exit 1
+	Write-Error "Invalid action: $Action"
 }
 
 exit 0
