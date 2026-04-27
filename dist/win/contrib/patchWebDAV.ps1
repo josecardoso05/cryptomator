@@ -4,8 +4,8 @@ Param(
 	[string] $Action = "install"
 )
 
-New-Variable -Name "SYSDIR" -Value ([Environment]::SystemDirectory) -Option Constant
-New-Variable -Name "HOSTSFILE" -Value "$sysdir\drivers\etc\hosts" -Option Constant
+New-Variable -Name "SYSDIR" -Value ([Environment]::SystemDirectory) -Option Constant -Scope Global
+New-Variable -Name "HOSTSFILE" -Value "$sysdir\drivers\etc\hosts" -Option Constant -Scope Global
 
 # Adds an alias for 127.0.0.1 to the hosts file
 function Add-AliasToHost {
@@ -21,9 +21,9 @@ function Add-AliasToHost {
     }
 
     $content = Get-Content $HOSTSFILE
-    $content += "`r`n$aliasLine"
+    $newContent += "`r`n$aliasLine"
 
-    $content | Set-Content "$hostsfile.tmp" -Encoding ascii
+    $newContent | Set-Content "$hostsfile.tmp" -Encoding ascii
     Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
 }
 
@@ -86,7 +86,7 @@ if ($Action -eq "install") {
     Remove-AliasFromHost $LoopbackAlias
     Write-Output 'Ensured alias removed from hosts file'
 } else {
-	Write-Error "Invalid action: $Action"
+	Write-Error "Invalid action: $Action. Only 'install' or 'uninstall' are valid."
 }
 
 exit 0
