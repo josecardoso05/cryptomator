@@ -73,20 +73,18 @@ function Edit-ProviderOrder {
     New-ItemProperty -Path $RegistryPath -Name $Name -Value $UpdatedOrder -PropertyType String -Force | Out-Null
 }
 
-if ($Action -eq "install") {
-	Add-AliasToHost $LoopbackAlias
+if ($Action -eq "uninstall") {
+    Remove-AliasFromHost $LoopbackAlias
+    Write-Output 'Ensured alias removed from hosts file'
+} else {
+    Add-AliasToHost $LoopbackAlias
     Write-Output 'Ensured alias exists in hosts file'
 
-	Set-WebDAVFileSizeLimit
+    Set-WebDAVFileSizeLimit
     Write-Output 'Set WebDAV file size limit'
 
     Edit-ProviderOrder
     Write-Output 'Ensured correct provider order'
-} elseif ($Action -eq "uninstall") {
-    Remove-AliasFromHost $LoopbackAlias
-    Write-Output 'Ensured alias removed from hosts file'
-} else {
-	Write-Error "Invalid action: $Action"
 }
 
 exit 0
