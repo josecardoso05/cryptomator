@@ -21,9 +21,9 @@ function Add-AliasToHost {
     }
 
     $content = Get-Content $HOSTSFILE
-    $newContent += "`r`n$aliasLine"
+    $content += "`r`n$aliasLine"
 
-    $newContent | Set-Content "$hostsfile.tmp" -Encoding ascii
+    $content | Set-Content "$hostsfile.tmp" -Encoding ascii
     Move-Item "$hostsfile.tmp" $HOSTSFILE -Force
 }
 
